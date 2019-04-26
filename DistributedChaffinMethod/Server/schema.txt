@@ -1,0 +1,4 @@
+The original schema hasn't been published yet, so this may not be quite right, but it seems to work well enough for playing around:
+
+create table witness_strings (   n INT,   waste INT,   perms INT,   str TEXT,   excl_perms INT DEFAULT 1000000000,   final CHAR(1), PRIMARY KEY (n, waste));
+create table tasks (   id INT AUTO_INCREMENT,   access INT, n INT, waste INT, prefix TEXT, perm_to_exceed INT, status CHAR(1) DEFAULT 'U', prev_perm_ruled_out INT DEFAULT 1000000000, iteration INT DEFAULT 0, ts_allocated TIMESTAMP NULL, ts_finished TIMESTAMP NULL, excl_witness TEXT, checkin_count INT DEFAULT 0, ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, perm_ruled_out INT DEFAULT 0, PRIMARY KEY (id));

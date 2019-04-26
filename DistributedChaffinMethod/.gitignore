@@ -1,0 +1,14 @@
+# compiled binary
+DistributedChaffinMethod
+DCM
+dcm
+
+# Secrets
+Server/ink2.php
+
+# log files
+DCMLog_*.txt
+DCMServerResponse_*.txt
+
+# Visual Studio Code workspace files
+.vscode
