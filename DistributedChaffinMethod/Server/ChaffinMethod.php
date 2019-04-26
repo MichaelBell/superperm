@@ -598,7 +598,7 @@ else
 					$rarr[] = "$d";
 					};
 				
-				for ($i=0; $i<$n-1; $i++)
+				for ($i=$rlen-1; $i<$n-1; $i++)
 					{
 					$is_retained = $i < $rlen;
 					$new_access = mt_rand($A_LO,$A_HI);

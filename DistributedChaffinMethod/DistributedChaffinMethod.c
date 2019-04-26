@@ -646,22 +646,26 @@ if (++nodesChecked >= nodesBeforeTimeCheck && pos > currentTask.prefixLen)
 			
 			//	Number of digit choices that led to the sub-branch we are in now
 			
-			int ourBranchC = curi[currentTask.prefixLen];
+			int ourBranchC;
+			do
+				{
+				ourBranchC = curi[currentTask.prefixLen];
+
+				//	We split the task with the original prefix into (n-1) new tasks
+				//	where that prefix is followed by every possible non-repeated digit.
+				
+				//	We finalise those new tasks whose sub-branches we have already fully traversed,
+				//	and then continue in the current sub-branch under the banner of a new task
+				//	with a longer prefix.
 			
-			//	We split the task with the original prefix into (n-1) new tasks
-			//	where that prefix is followed by every possible non-repeated digit.
+				//	The server will allocate the remaining digits to other tasks.
 			
-			//	We finalise those new tasks whose sub-branches we have already fully traversed,
-			//	and then continue in the current sub-branch under the banner of a new task
-			//	with a longer prefix.
+				static char retainedDigits[MAX_N+1];
+				for (int z=0;z<ourBranchC;z++) retainedDigits[z]='0'+curd[n*currentTask.prefixLen + z];
+				retainedDigits[ourBranchC]='\0';
 			
-			//	The server will allocate the remaining digits to other tasks.
-			
-			static char retainedDigits[MAX_N+1];
-			for (int z=0;z<ourBranchC;z++) retainedDigits[z]='0'+curd[n*currentTask.prefixLen + z];
-			retainedDigits[ourBranchC]='\0';
-			
-			splitTask(retainedDigits);
+				splitTask(retainedDigits);
+				} while (ourBranchC == nm);
 			};
 		};
 	};
@@ -674,6 +678,11 @@ int spareW = tot_bl - alreadyWasted;		//	Maximum number of further characters we
 //	These have been sorted into increasing order of ldd[tperm], the minimum number of further wasted characters needed to get a permutation.
 	
 struct digitScore *nd = nextDigits + nm*partNum;
+
+//	Near the beginning of the task, do the most promising branch last, to attempt
+//	to discover alternative branches worth splitting off.
+
+int do0last = (pos < currentTask.prefixLen + 20) && !(nd->score == 0 && !unvisited[nd->fullNum]);
 
 //	To be able to fully exploit foreknowledge that we are heading for a visited permutation after 1 wasted character, we need to ensure
 //	that we still traverse the loop in order of increasing waste.
@@ -706,7 +715,11 @@ char *cd = curd+n*pos;
 for	(int y=0; y<nm; y++)
 	{
 	int z;
-	if (swap01)
+	if (do0last)
+		{
+		if (y < nm-1) z=y+1; else z=0;
+		}
+	else if (swap01)
 		{
 		if (y==0) z=1; else if (y==1) {z=0; swap01=FALSE;} else z=y;
 		}
@@ -728,7 +741,10 @@ for	(int y=0; y<nm; y++)
 	
 	if (ld==1 && !unvisited[ndz->nextPerm]) spareW0--;
 		
-	if (spareW0<0) break;
+	if (spareW0<0) 
+		{
+		if (do0last) continue; else break;
+		}
 	
 	cd[curi[pos]++] = curstr[pos] = ndz->digit;
 	tperm = ndz->fullNum;
@@ -781,6 +797,7 @@ for	(int y=0; y<nm; y++)
 		if (vperm)
 			{
 			deferredRepeat=TRUE;
+			curi[pos]--;
 			swap12 = !unvisited[nd[1].nextPerm];
 			}
 		else
@@ -792,7 +809,7 @@ for	(int y=0; y<nm; y++)
 				}
 			else
 				{
-				break;
+				if (!do0last) break;
 				};
 			};
 		};
