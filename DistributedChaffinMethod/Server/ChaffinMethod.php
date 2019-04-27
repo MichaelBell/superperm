@@ -181,17 +181,11 @@ if ($mysqli->connect_errno)
 	}
 else
 	{
-	if (!$mysqli->real_query("LOCK TABLES tasks WRITE"))
-		{
-		$mysqli->close();
-		return "Error: Unable to lock database: (" . $mysqli->errno . ") " . $mysqli->error . "\n";
-		};
 	$access = mt_rand($A_LO,$A_HI);
 	if ($mysqli->real_query("INSERT INTO tasks (access,n,waste,prefix,perm_to_exceed) VALUES($access, $n, $w, '$str', $pte)"))
 		$result = "Task id: $mysqli->insert_id\n";
 	else $result = "Error: Unable to update database: (" . $mysqli->errno . ") " . $mysqli->error . "\n";
 	
-	$mysqli->real_query("UNLOCK TABLES");
 	$mysqli->close();
 	return $result;
 	};
@@ -287,11 +281,6 @@ if ($mysqli->connect_errno)
 	}
 else
 	{
-	if (!$mysqli->real_query("LOCK TABLES tasks WRITE"))
-		{
-		$mysqli->close();
-		return "Error: Unable to lock database: (" . $mysqli->errno . ") " . $mysqli->error . "\n";
-		};
 	$res = $mysqli->query("SELECT status, n, waste FROM tasks WHERE id=$id AND access=$access FOR UPDATE");
 	if ($res->num_rows==1)
 		{
@@ -322,7 +311,6 @@ else
 		else $result = "Error: No match to id=$id, access=$access for the task checking in\n";
 		};
 		
-	$mysqli->real_query("UNLOCK TABLES");
 	$mysqli->close();
 	return $result;
 	};
