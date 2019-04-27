@@ -228,7 +228,7 @@ int logServerResponse(const char *reqd);
 int getTask(struct task *tsk);
 int getMax(int nval, int wval, int oldMax);
 void doTask(void);
-void splitTask(const char *retainedDigits);
+int splitTask(const char *retainedDigits);
 void fillStr(int pos, int pfound, int partNum);
 int fac(int k);
 void makePerms(int n, int **permTab);
@@ -674,7 +674,11 @@ if (++nodesChecked >= nodesBeforeTimeCheck && pos > currentTask.prefixLen)
 				for (int z=0;z<ourBranchC;z++) retainedDigits[z]='0'+curd[n*currentTask.prefixLen + z];
 				retainedDigits[ourBranchC]='\0';
 			
-				splitTask(retainedDigits);
+				if (!splitTask(retainedDigits))
+					{
+					done = TRUE;
+					return;
+					}
 				} while (ourBranchC == nm);
 
 			if (currentTask.prefixLen >= originalPrefixLen + SPLITTABLE_STR_LEN)
@@ -1325,7 +1329,9 @@ return max;
 
 //	The server will allocate the remaining digits to other tasks.
 
-void splitTask(const char *retainedDigits)
+//	Returns FALSE if this task has been cancelled.
+
+int splitTask(const char *retainedDigits)
 {
 unsigned long int nrd = strlen(retainedDigits);
 
@@ -1361,6 +1367,8 @@ while (!feof(fp))
 		buffer[blen-1]='\0';
 		blen--;
 		};
+
+	if (!strcmp(buffer, "Cancelled")) return FALSE;
 		
 	//	See if line contains any task parameters
 	
@@ -1430,4 +1438,5 @@ for (int k=0; k<currentTask.prefixLen; ++k)
 		}
 	}
 
+return TRUE;
 }

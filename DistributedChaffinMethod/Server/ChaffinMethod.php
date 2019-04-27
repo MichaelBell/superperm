@@ -96,8 +96,8 @@ else
 				
 				if ($pro > 0)
 					{
-					$final = ($pro == $p+1) ? "Y" : "N";
-					$finalised = true;
+					$finalised = ($pro == $p+1);
+					$final = $finalised ? "Y" : "N";
 					if ($mysqli->real_query("INSERT INTO witness_strings (n,waste,perms,str,excl_perms,final) VALUES($n, $w, $p, '$str', $pro, '$final')"))
 						$result = "($n, $w, $p)\n";
 					else $result = "Error: Unable to update database: (" . $mysqli->errno . ") " . $mysqli->error . "\n";
@@ -128,8 +128,8 @@ else
 			
 				if ($pro > 0)
 					{
-					$final = ($pro == $p+1) ? "Y" : "N";
-					$finalised = true;
+					$finalised = ($pro == $p+1);
+					$final = $finalised ? "Y" : "N";
 					if ($mysqli->real_query("REPLACE INTO witness_strings (n,waste,perms,str,excl_perms,final) VALUES($n, $w, $p, '$str', $pro, '$final')"))
 						$result = "($n, $w, $p)\n";
 					else $result = "Error: Unable to update database: (" . $mysqli->errno . ") " . $mysqli->error . "\n";
@@ -669,6 +669,7 @@ else
 				}
 			else $result = "Error: Invalid 'retain' string $retain\n";
 			}
+		else if ($row['status']=='X') $result = "Cancelled\n";
 		else if ($row['status']=='F') $result = "Error: The task being split was marked finalised, which was unexpected\n";
 		else $result = "Error: The task being split was found to have status ".$row['status']. ", which was unexpected\n";
 		}
