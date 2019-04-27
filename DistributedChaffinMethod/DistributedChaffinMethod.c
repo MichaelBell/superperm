@@ -107,11 +107,7 @@ another instance of the program.
 
 //	Time between checking in with server (while performing a task)
 
-#define TIME_BETWEEN_SERVER_CHECKINS (2*MINUTE)
-
-//	Time to spend on a branch before splitting the search
-
-#define TIME_BEFORE_SPLIT (3*MINUTE)
+#define TIME_BETWEEN_SERVER_CHECKINS (1*MINUTE)
 
 //	Initial number of nodes to check before we bother to check elapsed time;
 //	we rescale the actual value (in nodesBeforeTimeCheck) if it is too large or too small
@@ -227,6 +223,7 @@ int sendServerCommand(const char *command);
 void sendServerCommandAndLog(const char *s);
 int logServerResponse(const char *reqd);
 int getTask(struct task *tsk);
+int checkIn();
 int getMax(int nval, int wval, int oldMax);
 void doTask(void);
 int splitTask(const char *retainedDigits);
@@ -634,10 +631,14 @@ if (++nodesChecked >= nodesBeforeTimeCheck && pos > currentTask.prefixLen)
 		//	We have hit a threshold for elapsed time since last check in with the server
 		
 		timeOfLastCheckin = t;
-		
-		sprintf(buffer,"action=checkIn&id=%u&access=%u",
-			currentTask.task_id, currentTask.access_code);
-		sendServerCommandAndLog(buffer);
+		int checkInRes = checkIn();
+
+		//	Check if task cancelled
+		if (checkInRes == -1)
+			{
+			done=TRUE;
+			return;
+			}
 		
 		//	Also check for current maximum for the (n,w) pair we are working on
 		
@@ -648,10 +649,9 @@ if (++nodesChecked >= nodesBeforeTimeCheck && pos > currentTask.prefixLen)
 			return;
 			};
 		
-		elapsedTime = difftime(t, startedCurrentTask);
-		if (elapsedTime > TIME_BEFORE_SPLIT)
+		if (checkInRes == 1)
 			{
-			//	We have hit a threshold for elapsed time since we started this task, so split the task
+			//	Server requires more tasks, so split the task.
 			
 			startedCurrentTask = t;
 			
@@ -1276,6 +1276,42 @@ if (!logServerResponse(NULL))
 	{
 	exit(EXIT_FAILURE);
 	};
+}
+
+// Check in, return 1 if split required, -1 if task cancelled, 0 if all OK.
+int checkIn()
+{
+sprintf(buffer,"action=checkIn&id=%u&access=%u",
+	currentTask.task_id, currentTask.access_code);
+sendServerCommandAndLog(buffer);
+		
+FILE *fp = fopen(SERVER_RESPONSE_FILE_NAME,"rt");
+if (fp==NULL)
+	{
+	printf("Unable to read from server response file %s\n",SERVER_RESPONSE_FILE_NAME);
+	exit(EXIT_FAILURE);
+	};
+
+int rv = 0;
+while (!feof(fp))
+	{
+	//	Get a line from the server response, ensure it is null-terminated without a newline
+	
+	char *f=fgets(buffer,BUFFER_SIZE,fp);
+	if (f==NULL) break;
+	unsigned long int blen = strlen(buffer);
+	if (buffer[blen-1]=='\n')
+		{
+		buffer[blen-1]='\0';
+		blen--;
+		};
+	
+	if (!strncmp(buffer, "Split", 5)) rv = 1;
+	else if (!strncmp(buffer, "Cancelled", 9)) rv = -1;
+	else rv = 0;
+	}
+
+return rv;
 }
 
 int getMax(int nval, int wval, int oldMax)

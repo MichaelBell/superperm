@@ -292,7 +292,7 @@ else
 		$mysqli->close();
 		return "Error: Unable to lock database: (" . $mysqli->errno . ") " . $mysqli->error . "\n";
 		};
-	$res = $mysqli->query("SELECT status FROM tasks WHERE id=$id AND access=$access FOR UPDATE");
+	$res = $mysqli->query("SELECT status, n, waste FROM tasks WHERE id=$id AND access=$access FOR UPDATE");
 	if ($res->num_rows==1)
 		{
 		$res->data_seek(0);
@@ -300,7 +300,16 @@ else
 		if ($row[0]=='A')
 			{
 			if ($mysqli->real_query("UPDATE tasks SET checkin_count=checkin_count+1 WHERE id=$id AND access=$access"))
-				$result = "OK\n";
+				{
+				$n = $row[1];
+				$w = $row[2];
+				$res2 = $mysqli->query("SELECT COUNT(*) FROM tasks WHERE n=$n AND waste=$w AND status = 'U'");
+				if ($res2->num_rows==1)
+					{
+					if ($res2->fetch_array()[0] < 8) $result = "Split\n"; else $result = "OK\n";
+					}
+				else $result = "Error: Unable to query database: (" . $mysqli->errno . ") " . $mysqli->error . "\n";
+				}
 			else $result = "Error: Unable to update database: (" . $mysqli->errno . ") " . $mysqli->error . "\n";
 			}
 		else if ($row[0]=='X') $result = "Cancelled\n";
