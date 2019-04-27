@@ -995,7 +995,8 @@ sleep(secs);
 
 //	Log a string, accompanied by a time stamp, to both the console and the log file
 
-void logString(const char *s)
+
+void logString2(const char *s, int toScreen)
 {
 //	Prepare time stamp
 
@@ -1011,7 +1012,7 @@ if (tsb[tlen-1]=='\n') tsb[tlen-1]='\0';
 
 //	Output string with time stamps
 
-printf("%s %s\n",tsb, s);
+if (toScreen) printf("%s %s\n",tsb, s);
 
 FILE *fp = fopen(LOG_FILE_NAME,"at");
 if (fp==NULL)
@@ -1022,6 +1023,12 @@ if (fp==NULL)
 fprintf(fp,"%s %s\n",tsb, s);
 fclose(fp);
 }
+
+void logString(const char *s)
+{
+	logString2(s, TRUE);
+}
+
 
 //	Send a command string via URL_UTILITY to the server at SERVER_URL, putting the response in the file SERVER_RESPONSE_FILE_NAME
 //
@@ -1088,7 +1095,7 @@ while (!feof(fp))
 	if (lineNumber==1 && reqd!=NULL && strncmp(buffer,reqd,strlen(reqd))!=0) result=FALSE;
 	
 	sprintf(lbuffer,"Server: %s",buffer);
-	logString(lbuffer);
+	logString2(lbuffer, lineNumber==1);
 	};
 	
 fclose(fp);
