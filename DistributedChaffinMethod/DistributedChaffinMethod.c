@@ -77,6 +77,9 @@ another instance of the program.
 
 #define DBITS 3
 
+//	Amount of start fo string after the prefix to search backwards to enable task splitting
+#define SPLITTABLE_STR_LEN 25
+
 //	Server URL
 
 #define SERVER_URL "http://127.0.0.1:8000/ChaffinMethod.php?version=3&"
@@ -186,6 +189,8 @@ int *oneCycleIndices=NULL;	//	The 1-cycle to which each permutation belongs
 int oneCycleBins[MAX_N+1];	//	The numbers of 1-cycles that have 0 ... n unvisited permutations
 
 int done=FALSE;				//	Global flag we can set for speedy fall-through of recursion once we know there is nothing else we want to do
+int restartTask=FALSE;			//	Global flag to indicate we exitted fillStr without completing the task
+int originalPrefixLen;			//	Length of the prefix on entry to the task
 
 //	Monitoring 1-cycle tracking
 
@@ -523,6 +528,8 @@ void doTask()
 {
 tot_bl = currentTask.w_value;
 
+do
+{
 //	Initialise all permutations as unvisited
 
 for (int i=0; i<maxInt; i++) unvisited[i] = TRUE;
@@ -571,9 +578,12 @@ time(&timeOfLastCheckin);
 //	Recursively fill in the string
 
 done=FALSE;
+restartTask=FALSE;
 max_perm = currentTask.perm_to_exceed;
 bestSeenP=0;
+originalPrefixLen=currentTask.prefixLen;
 fillStr(currentTask.prefixLen,pf,partNum0);
+} while(restartTask);
 
 //	Finish with current task with the server
 
@@ -666,6 +676,13 @@ if (++nodesChecked >= nodesBeforeTimeCheck && pos > currentTask.prefixLen)
 			
 				splitTask(retainedDigits);
 				} while (ourBranchC == nm);
+
+			if (currentTask.prefixLen >= originalPrefixLen + SPLITTABLE_STR_LEN)
+				{
+				restartTask = TRUE;
+				done = TRUE;
+				return;
+				}
 			};
 		};
 	};
@@ -682,7 +699,8 @@ struct digitScore *nd = nextDigits + nm*partNum;
 //	Near the beginning of the task, do the most promising branch last, to attempt
 //	to discover alternative branches worth splitting off.
 
-int do0last = (pos < currentTask.prefixLen + 20) && !(nd->score == 0 && !unvisited[nd->fullNum]);
+int runBackwards = (pos < currentTask.prefixLen + SPLITTABLE_STR_LEN);
+int repeatFirst = runBackwards && (nd->score==0 && !unvisited[nd->fullNum]);
 
 //	To be able to fully exploit foreknowledge that we are heading for a visited permutation after 1 wasted character, we need to ensure
 //	that we still traverse the loop in order of increasing waste.
@@ -715,9 +733,10 @@ char *cd = curd+n*pos;
 for	(int y=0; y<nm; y++)
 	{
 	int z;
-	if (do0last)
+	if (runBackwards)
 		{
-		if (y < nm-1) z=y+1; else z=0;
+		if (repeatFirst) { if (y==0) z=0; else z=nm-y; }
+		else z=nm-1-y;
 		}
 	else if (swap01)
 		{
@@ -743,7 +762,7 @@ for	(int y=0; y<nm; y++)
 		
 	if (spareW0<0) 
 		{
-		if (do0last) continue; else break;
+		if (runBackwards) continue; else break;
 		}
 	
 	cd[curi[pos]++] = curstr[pos] = ndz->digit;
@@ -794,7 +813,7 @@ for	(int y=0; y<nm; y++)
 		}
 	else if	(spareW > 0)
 		{
-		if (vperm)
+		if (vperm && !runBackwards)
 			{
 			deferredRepeat=TRUE;
 			curi[pos]--;
@@ -809,7 +828,7 @@ for	(int y=0; y<nm; y++)
 				}
 			else
 				{
-				if (!do0last) break;
+				if (!runBackwards) break;
 				};
 			};
 		};
