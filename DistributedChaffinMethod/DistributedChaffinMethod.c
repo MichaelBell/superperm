@@ -189,6 +189,7 @@ int *oneCycleIndices=NULL;	//	The 1-cycle to which each permutation belongs
 int oneCycleBins[MAX_N+1];	//	The numbers of 1-cycles that have 0 ... n unvisited permutations
 
 int done=FALSE;				//	Global flag we can set for speedy fall-through of recursion once we know there is nothing else we want to do
+int taskWasSplit=FALSE;                 //	Whether the task was split
 int restartTask=FALSE;			//	Global flag to indicate we exitted fillStr without completing the task
 int originalPrefixLen;			//	Length of the prefix on entry to the task
 
@@ -578,6 +579,7 @@ time(&timeOfLastCheckin);
 //	Recursively fill in the string
 
 done=FALSE;
+taskWasSplit=FALSE;
 restartTask=FALSE;
 max_perm = currentTask.perm_to_exceed;
 bestSeenP=0;
@@ -595,6 +597,7 @@ asciiString[bestSeenLen] = '\0';
 
 sprintf(buffer,"action=finishTask&id=%u&access=%u&str=%s&pro=%u",
 	currentTask.task_id, currentTask.access_code, asciiString, max_perm+1);
+if (taskWasSplit) strcat(buffer, "&split=Y");
 sendServerCommandAndLog(buffer);
 
 free(currentTask.prefix);
@@ -653,6 +656,7 @@ if (++nodesChecked >= nodesBeforeTimeCheck && pos > currentTask.prefixLen)
 			startedCurrentTask = t;
 			
 			logString("Splitting current task ...");
+			taskWasSplit = TRUE;
 			
 			//	Number of digit choices that led to the sub-branch we are in now
 			
@@ -1425,18 +1429,6 @@ if (finalise[t])
 
 	free(ftask[t].prefix);
 	};
-
-//	Clear bestSeen if it doesn't start with the current prefix
-
-for (int k=0; k<currentTask.prefixLen; ++k)
-	{
-	if ('0'+bestSeen[k] != currentTask.prefix[k])
-		{
-		bestSeenP = 0;
-		bestSeenLen = 0;
-		break;
-		}
-	}
 
 return TRUE;
 }
