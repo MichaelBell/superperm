@@ -1399,4 +1399,16 @@ if (finalise[t])
 	free(ftask[t].prefix);
 	};
 
+//	Clear bestSeen if it doesn't start with the current prefix
+
+for (int k=0; k<currentTask.prefixLen; ++k)
+	{
+	if ('0'+bestSeen[k] != currentTask.prefix[k])
+		{
+		bestSeenP = 0;
+		bestSeenLen = 0;
+		break;
+		}
+	}
+
 }
