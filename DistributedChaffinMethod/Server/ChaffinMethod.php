@@ -75,6 +75,7 @@ if ($mysqli->connect_errno)
 	}
 else
 	{
+	$finalised = false;
 	if (!$mysqli->real_query("LOCK TABLES witness_strings " . ($p>=0 ? "WRITE" : "READ")))
 		{
 		$mysqli->close();
@@ -96,6 +97,7 @@ else
 				if ($pro > 0)
 					{
 					$final = ($pro == $p+1) ? "Y" : "N";
+					$finalised = true;
 					if ($mysqli->real_query("INSERT INTO witness_strings (n,waste,perms,str,excl_perms,final) VALUES($n, $w, $p, '$str', $pro, '$final')"))
 						$result = "($n, $w, $p)\n";
 					else $result = "Error: Unable to update database: (" . $mysqli->errno . ") " . $mysqli->error . "\n";
@@ -127,6 +129,7 @@ else
 				if ($pro > 0)
 					{
 					$final = ($pro == $p+1) ? "Y" : "N";
+					$finalised = true;
 					if ($mysqli->real_query("REPLACE INTO witness_strings (n,waste,perms,str,excl_perms,final) VALUES($n, $w, $p, '$str', $pro, '$final')"))
 						$result = "($n, $w, $p)\n";
 					else $result = "Error: Unable to update database: (" . $mysqli->errno . ") " . $mysqli->error . "\n";
@@ -148,6 +151,16 @@ else
 		};
 	
 	$mysqli->real_query("UNLOCK TABLES");
+
+	if ($finalised)
+		{
+		// Cancel any outstanding tasks for this n.
+		$mysqli->real_query("UPDATE tasks SET status='X' WHERE status!='F' AND n=$n");
+
+		// Setup new task
+		maybeCreateNewTask($n, $w, $p, $mysqli);
+		}
+
 	$mysqli->close();
 	return $result;
 	};
@@ -290,6 +303,7 @@ else
 				$result = "OK\n";
 			else $result = "Error: Unable to update database: (" . $mysqli->errno . ") " . $mysqli->error . "\n";
 			}
+		else if ($row[0]=='X') $result = "Cancelled\n";
 		else if ($row[0]=='F') $result = "Error: The task checking in was marked finalised, which was unexpected\n";
 		else $result = "Error: The task checking in was found to have status ".$row[0]. ", which was unexpected\n";
 		}
@@ -372,6 +386,26 @@ if ($n==1) return 1;
 return $n*factorial($n-1);
 }
 
+function maybeCreateNewTask($n, $w, $p, $mysqli)
+{
+global $A_LO, $A_HI;
+
+	$fn = factorial($n);
+	if ($p < $fn)
+		{
+		$w1 = $w+1;
+		$str = substr("123456789",0,$n);
+		$pte = $p + 2*($n-4);
+		if ($pte >= $fn) $pte = $fn-1;
+		$pro2 = $p+$n+1;
+		$access = mt_rand($A_LO,$A_HI);
+		if ($mysqli->real_query("INSERT INTO tasks (access,n,waste,prefix,perm_to_exceed,prev_perm_ruled_out) VALUES($access, $n, $w1, '$str', $pte, $pro2)"))
+			return "OK\nTask id: $mysqli->insert_id\n";
+		else return "Error: Unable to update database: (" . $mysqli->errno . ") " . $mysqli->error . "\n";
+		}
+	else return "OK\n";
+}
+
 //	Function to do further processing if we have finished all tasks for the current (n,w,iter) search
 
 function finishedAllTasks($n, $w, $iter, $mysqli)
@@ -412,21 +446,8 @@ if ($res->num_rows > 0)
 		};
 		
 	//	Maybe create a new task for a higher w value
+	return maybeCreateNewTask($n, $w, $p, $mysqli);
 	
-	$fn = factorial($n);
-	if ($p < $fn)
-		{
-		$w1 = $w+1;
-		$str = substr("123456789",0,$n);
-		$pte = $p + 2*($n-4);
-		if ($pte >= $fn) $pte = $fn-1;
-		$pro2 = $p+$n+1;
-		$access = mt_rand($A_LO,$A_HI);
-		if ($mysqli->real_query("INSERT INTO tasks (access,n,waste,prefix,perm_to_exceed,prev_perm_ruled_out) VALUES($access, $n, $w1, '$str', $pte, $pro2)"))
-			return "OK\nTask id: $mysqli->insert_id\n";
-		else return "Error: Unable to update database: (" . $mysqli->errno . ") " . $mysqli->error . "\n";
-		}
-	else return "OK\n";
 	}
 else
 	{
@@ -507,6 +528,7 @@ else
 				}
 			else $result = "Error: String does not start with expected prefix\n";
 			}
+		else if ($row['status']=='X') $result = "The task was cancelled\n";
 		else if ($row['status']=='F') $result = "The task being finalised was already marked finalised, which was unexpected\n";
 		else $result = "The task being finalised was found to have status ".$row['status']. ", which was unexpected\n";
 		}

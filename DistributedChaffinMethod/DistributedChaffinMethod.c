@@ -901,7 +901,7 @@ logString(buffer);
 
 //	Log it with the server
 
-sprintf(buffer,"action=witnessString&n=%u&w=%u&str=%s",n,tot_bl,asciiString);
+sprintf(buffer,"action=witnessString&n=%u&w=%u&str=%s&pro=%u",n,tot_bl,asciiString,currentTask.prev_perm_ruled_out);
 sendServerCommandAndLog(buffer);
 }
 
