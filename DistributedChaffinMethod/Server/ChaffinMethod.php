@@ -225,21 +225,28 @@ else
 				{
 				if ($mysqli->real_query("UPDATE tasks SET status='A', ts_allocated=NOW() WHERE id=$id"))
 					{
-					$result = "Task id: $id\nAccess code: $access\nn: $n\nw: $w\nstr: $str\npte: $pte\npro: $ppro\n";
-					
-					//	Output all finalised (w,p) pairs
-					
-					$res2 = $mysqli->query("SELECT waste, perms FROM witness_strings WHERE n=$n AND final='Y' ORDER BY waste ASC");
+					$res2 = $mysqli->query("SELECT perms FROM witness_strings WHERE n=$n and waste=$w");
 					if ($mysqli->errno) $result = "Error: Unable to read database: (" . $mysqli->errno . ") " . $mysqli->error . "\n";
 					else
 						{
-						for ($row_no = 0; $row_no < $res2->num_rows; $row_no++)
+						//	Update pte if more perms have already been found
+						if ($res2->num_rows==1) $pte=$res2->fetch_array()[0];
+						$result = "Task id: $id\nAccess code: $access\nn: $n\nw: $w\nstr: $str\npte: $pte\npro: $ppro\n";
+
+						//	Output all finalised (w,p) pairs
+
+						$res2 = $mysqli->query("SELECT waste, perms FROM witness_strings WHERE n=$n AND final='Y' ORDER BY waste ASC");
+						if ($mysqli->errno) $result = "Error: Unable to read database: (" . $mysqli->errno . ") " . $mysqli->error . "\n";
+						else
 							{
-							$res2->data_seek($row_no);
-							$row = $res2->fetch_array();
-							$result = $result . "(" . $row[0] . "," . $row[1] . ")\n";
+							for ($row_no = 0; $row_no < $res2->num_rows; $row_no++)
+								{
+								$res2->data_seek($row_no);
+								$row = $res2->fetch_array();
+								$result = $result . "(" . $row[0] . "," . $row[1] . ")\n";
+								};
 							};
-						};
+						}
 					}
 				else $result = "Error: Unable to update database: (" . $mysqli->errno . ") " . $mysqli->error . "\n";
 				}
