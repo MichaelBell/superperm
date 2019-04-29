@@ -1310,6 +1310,7 @@ while (!feof(fp))
 	else if (!strncmp(buffer, "Cancelled", 9)) rv = -1;
 	else rv = 0;
 	}
+fclose(fp);
 
 return rv;
 }
